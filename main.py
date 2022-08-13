@@ -1,20 +1,28 @@
 from flask import Flask, request, jsonify
-
+from sqlalchemy.orm import relationship
+from flask_login import UserMixin, login_user, LoginManager, login_required, current_user, logout_user
 from flask_sqlalchemy import SQLAlchemy
 from encryption import encrypt
 from decryption import decrypt
+from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///fincrypt.db"
 
+app.config["SECRET_KEY"] = "This is some secret data"
+
 db = SQLAlchemy(app)
+
+login_manager = LoginManager()
+login_manager.init_app(app)
 
 
 # Card details table
 class Cards(db.Model):
     __tablename__ = 'cards'
     id = db.Column(db.Integer, primary_key=True)
-    email = db.Column(db.String(100), unique=True, nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"))
+    user = relationship("User", back_populates="cards")
     card_number = db.Column(db.BigInteger, nullable=False)
     cvv = db.Column(db.Integer, nullable=False)
     expiry_month = db.Column(db.Integer, nullable=False)
@@ -23,7 +31,68 @@ class Cards(db.Model):
     nonce = db.Column(db.LargeBinary, nullable=False)
 
 
+class User(UserMixin, db.Model):
+    __tablename__ = "users"
+    id = db.Column(db.Integer, primary_key=True)
+    email = db.Column(db.String(100), unique=True)
+    password = db.Column(db.String(100))
+    name = db.Column(db.String(100))
+    cards = relationship("Cards", back_populates="user")
+
+
 db.create_all()
+
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(user_id)
+
+
+@app.route("/register", methods=["POST", "GET"])
+def register():
+    name = request.args.get("name")
+    email = request.args.get("email")
+    password = request.args.get("password")
+
+    user = User.query.filter_by(email=email).first()
+    if user:
+        return jsonify(
+            Error="You are already registered with this email, login instead"
+        ), 409
+
+    hash_and_salt_password = generate_password_hash(
+        password,
+        method="pbkdf2:sha256",
+        salt_length=8,
+    )
+
+    new_user = User(
+        email=email,
+        password=hash_and_salt_password,
+        name=name
+    )
+    db.session.add(new_user)
+    db.session.commit()
+    return jsonify(success="User registered successfully"), 200
+
+
+@app.route("/login", methods=["POST", "GET"])
+def login():
+    email = request.args.get("email")
+    password = request.args.get("password")
+
+    user = User.query.filter_by(email=email).first()
+    if not user:
+        return jsonify(
+            Error="User not found, try again"
+        ), 404
+
+    hash_password = user.password
+    if check_password_hash(hash_password, password):
+        login_user(user)
+        return jsonify(Success="User loggedIn Successfully"), 200
+    else:
+        return jsonify(Error="Password doesn't match, try again"), 403
 
 
 @app.route("/")
