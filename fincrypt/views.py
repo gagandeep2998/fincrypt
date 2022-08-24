@@ -10,10 +10,10 @@ views = Blueprint("views", __name__)
 
 @views.route("/")
 def home():
-    return "<h1>Welcome to the fincrypt api</h1>"
+    return jsonify(Welcome="Welcome to the fincrypt api")
 
 
-@views.route("/add-card", methods=["GET", "POST"])
+@views.route("/add-card", methods=["POST"])
 @login_required
 def add_new_card():
     card_number = request.args.get("card_number")
@@ -27,8 +27,6 @@ def add_new_card():
                                                     expiry_year=expiry_year,
                                                     )
 
-    print(encrypted_card_details)
-
     new_card = Cards(
         card_number=encrypted_card_details["card_number"],
         cvv=encrypted_card_details["cvv"],
@@ -41,7 +39,7 @@ def add_new_card():
     db.session.add(new_card)
     db.session.commit()
 
-    return jsonify(success=" Data encrypted and saved successfully ")
+    return jsonify(success=" Data encrypted and saved successfully "), 201
 
 
 @views.route("/get-cards")
@@ -67,13 +65,12 @@ def get_cards():
             "expiry_month": int(decrypted_data["expiry_month"]),
             "expiry_year": int(decrypted_data["expiry_year"]),
         }
-        print(card_details)
         all_cards.append(card_details)
 
     return jsonify(card_details=all_cards)
 
 
-@views.route("/delete/<int:card_id>", methods=["GET", "DELETE"])
+@views.route("/delete/<int:card_id>", methods=["DELETE"])
 @login_required
 def delete_card(card_id):
     current_user_id = current_user.get_id()
@@ -91,7 +88,7 @@ def delete_card(card_id):
     return jsonify(success="Card Details deleted successfully"), 200
 
 
-@views.route("/edit-card-details/<int:card_id>")
+@views.route("/edit-card-details/<int:card_id>", methods=["PUT"])
 @login_required
 def edit_card(card_id):
     current_user_id = current_user.get_id()

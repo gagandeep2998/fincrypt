@@ -7,32 +7,33 @@ from flask_login import login_user, logout_user
 auth = Blueprint("auth", __name__)
 
 
-@auth.route("/register", methods=["POST", "GET"])
+@auth.route("/register", methods=["POST"])
 def register():
-    name = request.args.get("name")
-    email = request.args.get("email")
-    password = request.args.get("password")
+    if request.method == "POST":
+        name = request.args.get("name")
+        email = request.args.get("email")
+        password = request.args.get("password")
 
-    user = User.query.filter_by(email=email).first()
-    if user:
-        return jsonify(
-            Error="You are already registered with this email, login instead"
-        ), 409
+        user = User.query.filter_by(email=email).first()
+        if user:
+            return jsonify(
+                Error="You are already registered with this email, login instead"
+            ), 409
 
-    hash_and_salt_password = generate_password_hash(
-        password,
-        method="pbkdf2:sha256",
-        salt_length=8,
-    )
+        hash_and_salt_password = generate_password_hash(
+            password,
+            method="pbkdf2:sha256",
+            salt_length=8,
+        )
 
-    new_user = User(
-        email=email,
-        password=hash_and_salt_password,
-        name=name
-    )
-    db.session.add(new_user)
-    db.session.commit()
-    return jsonify(success="User registered successfully"), 200
+        new_user = User(
+            email=email,
+            password=hash_and_salt_password,
+            name=name
+        )
+        db.session.add(new_user)
+        db.session.commit()
+        return jsonify(success="User registered successfully"), 201
 
 
 @auth.route("/login", methods=["POST", "GET"])
@@ -51,10 +52,12 @@ def login():
         login_user(user)
         return jsonify(Success="User loggedIn Successfully"), 200
     else:
-        return jsonify(Error="Password doesn't match, try again"), 403
+        return jsonify(Error="Password doesn't match, try again"), 401
 
 
-@auth.route("/logout")
+@auth.route("/logout", methods=["POST"])
 def logout():
     logout_user()
     return jsonify(Success="User logged out Successfully")
+
+
