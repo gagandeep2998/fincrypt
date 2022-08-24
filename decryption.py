@@ -8,5 +8,4 @@ def decrypt(key, nonce, **kwargs):
     for details, value in kwargs.items():
         # print(details, value)
         decrypted_data[details] = str(cipher.decrypt(value).decode("UTF-8"))
-    print(decrypted_data)
     return decrypted_data

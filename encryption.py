@@ -4,12 +4,10 @@ from Crypto.Random import get_random_bytes
 
 def encrypt(**kwargs):
     key = get_random_bytes(16)
-    print(key)
 
     cipher = AES.new(key, AES.MODE_EAX)
 
     nonce = cipher.nonce
-    print(nonce)
     encrypted_details = {}
     key_and_nonce = {
         "key": key,
