@@ -35,5 +35,5 @@ def create_app():
 
 
 def create_db(app):
-    if path.exists("fincrypt/" + DB_NAME):
+    if not path.exists("fincrypt/" + DB_NAME):
         db.create_all(app=app)
