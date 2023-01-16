@@ -21,3 +21,18 @@ class CardResponse(BaseModel):
 
 class CardQuery(BaseModel):
     card_id: int
+
+
+# User Authentication Models
+
+
+class UserRegistration(BaseModel):
+    name: str
+    email: str
+    password: str
+
+
+class UserLogin(BaseModel):
+    email: str
+    password: str
+

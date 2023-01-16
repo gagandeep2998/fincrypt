@@ -3,16 +3,19 @@ from .models import User
 from werkzeug.security import generate_password_hash, check_password_hash
 from . import db
 from flask_login import login_user, logout_user
+from .schemas import UserRegistration, UserLogin
+from flask_pydantic import validate
 
 auth = Blueprint("auth", __name__)
 
 
 @auth.route("/register", methods=["POST"])
-def register():
+@validate()
+def register(body: UserRegistration):
     if request.method == "POST":
-        name = request.args.get("name")
-        email = request.args.get("email")
-        password = request.args.get("password")
+        name = body.name
+        email = body.email
+        password = body.password
 
         user = User.query.filter_by(email=email).first()
         if user:
@@ -37,9 +40,10 @@ def register():
 
 
 @auth.route("/login", methods=["POST", "GET"])
-def login():
-    email = request.args.get("email")
-    password = request.args.get("password")
+@validate()
+def login(body: UserLogin):
+    email = body.email
+    password = body.password
 
     user = User.query.filter_by(email=email).first()
     if not user:
