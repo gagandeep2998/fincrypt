@@ -4,6 +4,9 @@ from .models import Cards
 from . import db
 from decryption import decrypt
 from encryption import encrypt
+from flask_pydantic import validate
+from .schemas import CardBody, CardResponse, CardQuery
+
 
 views = Blueprint("views", __name__)
 
@@ -15,11 +18,12 @@ def home():
 
 @views.route("/add-card", methods=["POST"])
 @login_required
-def add_new_card():
-    card_number = request.args.get("card_number")
-    cvv = request.args.get("cvv")
-    expiry_month = request.args.get("expiry_month")
-    expiry_year = request.args.get("expiry_year")
+@validate()
+def add_new_card(body: CardBody):
+    card_number = body.card_number
+    cvv = body.cvv
+    expiry_month = body.expiry_month
+    expiry_year = body.expiry_year
 
     encrypted_card_details, key_and_nonce = encrypt(card_number=card_number,
                                                     cvv=cvv,
@@ -44,6 +48,7 @@ def add_new_card():
 
 @views.route("/get-cards")
 @login_required
+@validate(response_many=True)
 def get_cards():
     current_user_id = current_user.get_id()
     cards = db.session.query(Cards).filter_by(user_id=current_user_id).all()
@@ -67,17 +72,22 @@ def get_cards():
         }
         all_cards.append(card_details)
 
-    return jsonify(card_details=all_cards)
+    return [CardResponse(id=card['id'],
+                         card_number=card['card_number'],
+                         cvv=card['cvv'],
+                         expiry_month=card['expiry_month'],
+                         expiry_year=card['expiry_year']) for card in all_cards]
 
 
-@views.route("/delete/<int:card_id>", methods=["DELETE"])
+@views.route("/delete", methods=["DELETE"])
 @login_required
-def delete_card(card_id):
+@validate()
+def delete_card(query: CardQuery):
     current_user_id = current_user.get_id()
     all_cards = db.session.query(Cards).filter_by(user_id=current_user_id).all()
     card_to_delete = None
     for card in all_cards:
-        if card.id == card_id:
+        if card.id == query.card_id:
             card_to_delete = card
 
     if not card_to_delete:
@@ -88,23 +98,24 @@ def delete_card(card_id):
     return jsonify(success="Card Details deleted successfully"), 200
 
 
-@views.route("/edit-card-details/<int:card_id>", methods=["PUT"])
+@views.route("/edit-card-details", methods=["PUT"])
 @login_required
-def edit_card(card_id):
+@validate()
+def edit_card(query: CardQuery, body: CardBody):
     current_user_id = current_user.get_id()
     all_cards = db.session.query(Cards).filter_by(user_id=current_user_id).all()
     card_to_update = None
     for card in all_cards:
-        if card.id == card_id:
+        if card.id == query.card_id:
             card_to_update = card
 
     if not card_to_update:
         return jsonify(Error="Card not found, please try again"), 404
 
-    card_number = request.args.get("card_number")
-    cvv = request.args.get("cvv")
-    expiry_month = request.args.get("expiry_month")
-    expiry_year = request.args.get("expiry_year")
+    card_number = body.card_number
+    cvv = body.cvv
+    expiry_month = body.expiry_month
+    expiry_year = body.expiry_year
 
     encrypted_details, key_and_nonce = encrypt(
         card_number=card_number,
