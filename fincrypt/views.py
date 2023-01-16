@@ -16,7 +16,7 @@ def home():
     return jsonify(Welcome="Welcome to the fincrypt api")
 
 
-@views.route("/add-card", methods=["POST"])
+@views.route("/cards", methods=["POST"])
 @login_required
 @validate()
 def add_new_card(body: CardBody):
@@ -46,7 +46,7 @@ def add_new_card(body: CardBody):
     return jsonify(success=" Data encrypted and saved successfully "), 201
 
 
-@views.route("/get-cards")
+@views.route("/cards")
 @login_required
 @validate(response_many=True)
 def get_cards():
@@ -79,7 +79,7 @@ def get_cards():
                          expiry_year=card['expiry_year']) for card in all_cards]
 
 
-@views.route("/delete", methods=["DELETE"])
+@views.route("/cards", methods=["DELETE"])
 @login_required
 @validate()
 def delete_card(query: CardQuery):
@@ -98,7 +98,7 @@ def delete_card(query: CardQuery):
     return jsonify(success="Card Details deleted successfully"), 200
 
 
-@views.route("/edit-card-details", methods=["PUT"])
+@views.route("/cards", methods=["PUT"])
 @login_required
 @validate()
 def edit_card(query: CardQuery, body: CardBody):
